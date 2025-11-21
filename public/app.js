@@ -787,12 +787,15 @@ function addVisitMarker(visit) {
     }),
   }).addTo(map);
 
-  const userName = currentPlayerName || "You";
+  // Prefer visit.owner_name/display_name, fall back to generic
+  const ownerName =
+    visit.display_name ||
+    visit.owner_name || // in case you choose that field name later
+    "Traveler";
 
-  // No flag prefix anymore
-  let popupHtml = `<b>${escapeHtml(visit.place_name)}</b><br>by ${escapeHtml(
-    userName
-  )}`;
+  let popupHtml = `<b>${escapeHtml(
+    visit.place_name || visit.country || "Unknown location"
+  )}</b><br>by ${escapeHtml(ownerName)}`;
 
   if (visit.photo_url) {
     popupHtml += `<br><img src="${visit.photo_url}" style="margin-top: 6px; max-width: 220px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.4);" />`;
@@ -805,14 +808,6 @@ function addVisitMarker(visit) {
   if (visit.id) {
     visitMarkers.set(visit.id, marker);
   }
-}
-
-function clearAllMarkers() {
-  markers.forEach((marker) => {
-    map.removeLayer(marker);
-  });
-  markers = [];
-  visitMarkers.clear();
 }
 
 // ====== PLAYER NAME UPDATE ======

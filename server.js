@@ -49,8 +49,7 @@ const COUNTRY_NAMES_EN = {
 const allowedOrigins = [
   "http://localhost:4000",
   "http://localhost:3000",
-  // render domain
-  // "https://yourdomain.com"
+  "https://been-there-webapp.onrender.com",
 ];
 
 app.use(
@@ -259,19 +258,39 @@ app.post("/api/visits", authenticateToken, async (req, res) => {
 });
 
 // GET /api/visits/public - list recent visits for public map
+// GET /api/visits/public - list recent visits for public map
 app.get("/api/visits/public", async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("visits")
       .select(
-        "id, user_id, lat, lng, place_name, country, country_code, photo_url, created_at"
+        `
+        id,
+        user_id,
+        lat,
+        lng,
+        place_name,
+        country,
+        country_code,
+        photo_url,
+        created_at,
+        profiles!visits_user_id_fkey (
+          display_name
+        )
+      `
       )
       .order("created_at", { ascending: false })
-      .limit(500); // adjust limit as needed
+      .limit(500);
 
     if (error) throw error;
 
-    res.json(data);
+    // Normalize to { ..., display_name }
+    const withNames = (data || []).map((row) => ({
+      ...row,
+      display_name: row.profiles?.display_name || "Traveler",
+    }));
+
+    res.json(withNames);
   } catch (err) {
     console.error("Error fetching public visits:", err);
     res.status(500).json({ error: "Failed to load public visits" });
