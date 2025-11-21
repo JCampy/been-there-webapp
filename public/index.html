@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>World Travel Competition</title>
+
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <!-- Supabase JS (UMD) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.min.js"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: radial-gradient(circle at top left, #1e293b 0, #020617 55%);
+        color: #0f172a;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .app-shell {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+
+      /* Top bar */
+      .topbar {
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        background: rgba(15, 23, 42, 0.9);
+        backdrop-filter: blur(12px);
+        color: #e5e7eb;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+        z-index: 10;
+        flex-shrink: 0;
+      }
+
+      .topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .app-logo {
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
+        background: radial-gradient(circle at 30% 20%, #38bdf8, #6366f1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+
+      .app-title {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .app-title-main {
+        font-weight: 600;
+        font-size: 15px;
+      }
+
+      .app-title-sub {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 12px;
+      }
+
+      .online-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(22, 163, 74, 0.12);
+        color: #86efac;
+        border: 1px solid rgba(22, 163, 74, 0.5);
+        white-space: nowrap;
+      }
+
+      .online-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+        box-shadow: 0 0 6px rgba(34, 197, 94, 0.8);
+      }
+
+      .user-chip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.4);
+      }
+
+      .user-avatar {
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #6366f1, #ec4899);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: white;
+        font-weight: 600;
+      }
+
+      .user-chip-name {
+        font-size: 12px;
+        color: #e5e7eb;
+      }
+
+      .layout {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+
+      /* Left sidebar (me + instructions) */
+      .sidebar-left {
+        width: 320px;
+        background: radial-gradient(circle at top, #111827 0, #020617 55%);
+        padding: 18px 18px 18px 20px;
+        border-right: 1px solid rgba(148, 163, 184, 0.25);
+        color: #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow-y: auto;
+        flex-shrink: 0;
+      }
+
+      .panel {
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 14px;
+        padding: 14px 14px 16px;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.55);
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .panel-title {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: #9ca3af;
+      }
+
+      .badge-live {
+        font-size: 11px;
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: rgba(56, 189, 248, 0.1);
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.6);
+      }
+
+      .score-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .score-main {
+        font-size: 40px;
+        font-weight: 700;
+        color: #f9fafb;
+      }
+
+      .score-label {
+        font-size: 12px;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .streak-pill {
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(34, 197, 94, 0.12);
+        color: #bbf7d0;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .streak-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+      }
+
+      .instructions {
+        font-size: 12px;
+        color: #cbd5f5;
+        line-height: 1.6;
+      }
+
+      .instructions ol {
+        margin: 8px 0 0 16px;
+      }
+
+      .instructions li {
+        margin-bottom: 4px;
+      }
+
+      .player-input {
+        margin-top: 8px;
+      }
+
+      .player-input-label {
+        font-size: 11px;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 4px;
+      }
+
+      .player-input input {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+        background: rgba(15, 23, 42, 0.9);
+        color: #e5e7eb;
+        font-size: 13px;
+      }
+
+      .player-input input:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.6);
+      }
+
+      .visits-section-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e5e7eb;
+        margin-bottom: 6px;
+      }
+
+      .visits-subtitle {
+        font-size: 11px;
+        color: #9ca3af;
+        margin-bottom: 10px;
+      }
+
+      .visits-list {
+        max-height: 230px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+
+      .visit-item {
+        background: rgba(15, 23, 42, 0.85);
+        border-radius: 10px;
+        padding: 8px 10px;
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        border: 1px solid rgba(51, 65, 85, 0.9);
+      }
+
+      .visit-main {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .visit-location {
+        font-weight: 500;
+        color: #e5e7eb;
+      }
+
+      .visit-meta {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+
+      .visit-meta span {
+        margin-right: 6px;
+      }
+
+      .delete-btn {
+        background: rgba(239, 68, 68, 0.12);
+        color: #fecaca;
+        border: 1px solid rgba(248, 113, 113, 0.7);
+        padding: 4px 7px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 11px;
+        min-width: 22px;
+        text-align: center;
+      }
+
+      .delete-btn:hover {
+        background: rgba(239, 68, 68, 0.22);
+      }
+
+      .clear-btn {
+        width: 100%;
+        padding: 8px;
+        background: rgba(248, 113, 113, 0.16);
+        color: #fecaca;
+        border: 1px dashed rgba(248, 113, 113, 0.7);
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-top: 8px;
+      }
+
+      .clear-btn:hover {
+        background: rgba(248, 113, 113, 0.24);
+      }
+
+      /* Right sidebar (global leaderboard) */
+      .sidebar-right {
+        width: 320px;
+        background: radial-gradient(circle at top, #020617 0, #020617 55%);
+        padding: 18px 18px 18px 16px;
+        border-left: 1px solid rgba(148, 163, 184, 0.25);
+        color: #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow-y: auto;
+        flex-shrink: 0;
+      }
+
+      .leaderboard-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .leaderboard-tagline {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+
+      .players-count {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+
+      .players-count strong {
+        color: #e5e7eb;
+      }
+
+      .leaderboard {
+        margin-top: 6px;
+      }
+
+      .leader-item {
+        border-radius: 12px;
+        padding: 8px 10px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(
+          135deg,
+          rgba(15, 23, 42, 0.9) 0,
+          rgba(15, 23, 42, 0.9) 40%,
+          rgba(28, 25, 23, 0.95) 100%
+        );
+        border: 1px solid rgba(55, 65, 81, 0.9);
+      }
+
+      .leader-item.first {
+        border: 1px solid rgba(250, 204, 21, 0.9);
+        background: linear-gradient(
+          135deg,
+          #facc15 0,
+          #fb923c 40%,
+          #f97316 100%
+        );
+        color: #111827;
+      }
+
+      .leader-rank {
+        font-size: 13px;
+        font-weight: 700;
+        width: 22px;
+        text-align: center;
+      }
+
+      .leader-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 30% 20%, #38bdf8, #6366f1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: white;
+      }
+
+      .leader-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .leader-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .leader-meta {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+
+      .leader-score {
+        font-weight: 700;
+        font-size: 13px;
+      }
+
+      .leader-score span {
+        font-size: 11px;
+        font-weight: 500;
+        opacity: 0.8;
+      }
+
+      /* Middle map area */
+      .map-shell {
+        flex: 1;
+        position: relative;
+        min-width: 0;
+      }
+
+      #map {
+        width: 100%;
+        height: 100%;
+      }
+
+      .map-top-overlay {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 500;
+        display: flex;
+        gap: 8px;
+      }
+
+      .hint-pill {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.85);
+        color: #e5e7eb;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgba(148, 163, 184, 0.5);
+        backdrop-filter: blur(10px);
+      }
+
+      .hint-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+      }
+
+      /* Verify popup */
+      .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        z-index: 900;
+        display: none;
+      }
+
+      .overlay.active {
+        display: block;
+      }
+
+      .verify-popup {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle at top, #111827 0, #020617 55%);
+        padding: 20px 18px 16px;
+        border-radius: 16px;
+        box-shadow: 0 25px 80px rgba(15, 23, 42, 0.9);
+        z-index: 1000;
+        min-width: 290px;
+        max-width: 360px;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+        display: none;
+      }
+
+      .verify-popup.active {
+        display: block;
+      }
+
+      .verify-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #e5e7eb;
+        margin-bottom: 4px;
+      }
+
+      .verify-subtitle {
+        font-size: 11px;
+        color: #9ca3af;
+        margin-bottom: 10px;
+      }
+
+      .verify-field-label {
+        font-size: 11px;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 4px;
+      }
+
+      .verify-popup input {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 9px;
+        border: 1px solid rgba(148, 163, 184, 0.8);
+        background: rgba(15, 23, 42, 0.9);
+        color: #e5e7eb;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+
+      .verify-popup input:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.6);
+      }
+
+      .verify-coords {
+        font-size: 11px;
+        color: #9ca3af;
+        margin-bottom: 12px;
+      }
+
+      .verify-buttons {
+        display: flex;
+        gap: 8px;
+      }
+
+      .verify-buttons button {
+        flex: 1;
+        padding: 8px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+      }
+
+      .confirm-btn {
+        background: linear-gradient(135deg, #6366f1 0, #22c55e 100%);
+        color: white;
+      }
+
+      .cancel-btn {
+        background: rgba(15, 23, 42, 0.9);
+        color: #e5e7eb;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+      }
+
+      .confirm-btn:hover {
+        filter: brightness(1.05);
+      }
+
+      .cancel-btn:hover {
+        background: rgba(15, 23, 42, 0.95);
+      }
+
+      /* Highlight animation for selected map marker */
+      .leaflet-marker-icon.marker-highlight {
+        transform: scale(1.3);
+        transition: transform 0.2s ease-in-out;
+        z-index: 1000 !important;
+      }
+
+      /* Keep delete button centered even when row is clickable */
+      .visit-item {
+        position: relative;
+      }
+
+      .delete-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      @media (max-width: 1024px) {
+        .sidebar-left,
+        .sidebar-right {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- Top bar -->
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="app-logo">🌍</div>
+          <div class="app-title">
+            <div class="app-title-main">Been There!</div>
+            <div class="app-title-sub">
+              Drop pins. Verify visits. Climb the leaderboard.
+            </div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="online-pill">
+            <span class="online-dot"></span>
+            <span id="onlineCount">You &amp; other players</span>
+          </div>
+          <div class="user-chip" id="userChip" style="display: none">
+            <div class="user-avatar" id="userAvatar">T</div>
+            <div class="user-chip-name" id="userChipName">Traveler</div>
+            <button
+              id="logoutBtn"
+              style="
+                margin-left: 8px;
+                font-size: 10px;
+                border: none;
+                background: transparent;
+                color: #9ca3af;
+                cursor: pointer;
+              "
+            >
+              Log out
+            </button>
+          </div>
+          <button
+            id="loginBtn"
+            style="
+              padding: 6px 10px;
+              border-radius: 999px;
+              border: 1px solid rgba(148, 163, 184, 0.5);
+              background: rgba(15, 23, 42, 0.85);
+              color: #e5e7eb;
+              font-size: 11px;
+              cursor: pointer;
+            "
+          >
+            Sign in with Google
+          </button>
+        </div>
+      </div>
+
+      <div class="layout">
+        <!-- Left sidebar -->
+        <aside class="sidebar-left">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Your Score</div>
+              <span class="badge-live">Session</span>
+            </div>
+            <div class="score-card">
+              <div>
+                <div class="score-main" id="scoreNumber">0</div>
+                <div class="score-label">Places Verified</div>
+              </div>
+              <div class="streak-pill">
+                <span class="streak-dot"></span>
+                Live Session
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">How to Play</div>
+            </div>
+            <div class="instructions">
+              Compete with other travelers in real-time on a shared world map:
+              <ol>
+                <li>Enter your display name.</li>
+                <li>Click anywhere on the map to propose a visit.</li>
+                <li>Add a photo if you'd like to.</li>
+                <li>We’ll prevent duplicate pins near your past visits.</li>
+                <li>Watch your rank on the global leaderboard.</li>
+              </ol>
+            </div>
+            <div class="player-input">
+              <div class="player-input-label">Your Display Name</div>
+              <input
+                type="text"
+                id="playerName"
+                placeholder="Enter your name..."
+                value="Traveler"
+              />
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Your Visits</div>
+            </div>
+            <div class="visits-section-title">Pins you've verified</div>
+            <div class="visits-subtitle">
+              Click the map to add more. You’ll see them here and on the map.
+            </div>
+            <div class="visits-list" id="visitsList"></div>
+            <button class="clear-btn" onclick="clearVisits()">
+              Clear all my visits
+            </button>
+          </div>
+        </aside>
+
+        <!-- Map -->
+        <main class="map-shell">
+          <div id="map"></div>
+          <div class="map-top-overlay">
+            <div class="hint-pill">
+              <span class="hint-dot"></span>
+              Click anywhere on the map to add a visit
+            </div>
+          </div>
+          <div class="overlay" id="overlay"></div>
+          <div class="verify-popup" id="verifyPopup">
+            <div class="verify-title">Verify your visit</div>
+            <div class="verify-subtitle">
+              Name the city or place you’ve visited at this location.
+            </div>
+
+            <div class="verify-field">
+              <div class="verify-field-label">Place name</div>
+              <input
+                type="text"
+                id="locationName"
+                placeholder="e.g. Tokyo, Times Square, Sahara Desert"
+              />
+            </div>
+
+            <!-- New: optional photo upload -->
+            <div class="verify-field">
+              <div class="verify-field-label">Add a photo (optional)</div>
+              <input
+                type="file"
+                id="pinPhotoInput"
+                accept="image/*"
+                style="margin-bottom: 10px"
+              />
+              <div
+                id="pinPhotoHint"
+                style="
+                  font-size: 10px;
+                  color: #9ca3af;
+                  margin-top: -6px;
+                  margin-bottom: 10px;
+                "
+              >
+                Small images work best (e.g. phone photos). Others will see this
+                when they click your pin.
+              </div>
+            </div>
+
+            <div class="verify-coords" id="coordsDisplay"></div>
+            <div class="verify-buttons">
+              <button class="cancel-btn" onclick="cancelPin()">Cancel</button>
+              <button class="confirm-btn" onclick="confirmPin()">
+                Confirm pin
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <!-- Right sidebar -->
+        <aside class="sidebar-right">
+          <div class="panel">
+            <div class="leaderboard-header">
+              <div>
+                <div class="panel-title">Global Travelers</div>
+                <!-- <div class="leaderboard-tagline">
+                  Local session leaderboard (stored in your browser)
+                </div> -->
+              </div>
+              <div class="players-count" id="playersCount">
+                <strong>0</strong> players
+              </div>
+            </div>
+            <div class="leaderboard" id="leaderboardList"></div>
+          </div>
+
+          <!-- New Top Countries leaderboard -->
+          <div class="panel">
+            <div class="leaderboard-header">
+              <div>
+                <div class="panel-title">Top Countries</div>
+                <div class="leaderboard-tagline">
+                  Most visited countries across all players
+                </div>
+              </div>
+            </div>
+            <div class="leaderboard" id="countryLeaderboardList"></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
