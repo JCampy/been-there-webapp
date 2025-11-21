@@ -50,6 +50,8 @@ const allowedOrigins = [
   "http://localhost:4000",
   "http://localhost:3000",
   "https://been-there-webapp.onrender.com",
+  "www.beenthere.quest",
+  "beenthere.quest",
 ];
 
 app.use(
