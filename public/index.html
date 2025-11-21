@@ -298,6 +298,7 @@
         align-items: center;
         font-size: 12px;
         border: 1px solid rgba(51, 65, 85, 0.9);
+        position: relative;
       }
 
       .visit-main {
@@ -330,6 +331,9 @@
         font-size: 11px;
         min-width: 22px;
         text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .delete-btn:hover {
@@ -624,20 +628,103 @@
         z-index: 1000 !important;
       }
 
-      /* Keep delete button centered even when row is clickable */
-      .visit-item {
-        position: relative;
-      }
+      /* ---------- RESPONSIVE / MOBILE LAYOUT ---------- */
 
-      .delete-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      /* Tablets: keep split layout, just narrower sidebars */
+      .mobile-panels {
+        display: none;
       }
 
       @media (max-width: 1024px) {
         .sidebar-left,
         .sidebar-right {
+          width: 260px;
+        }
+      }
+
+      /* Phones: hide sidebars, show stacked "mobile panels" */
+      @media (max-width: 768px) {
+        body {
+          overflow: hidden;
+        }
+
+        .topbar {
+          padding: 0 12px;
+        }
+
+        .app-title-sub {
+          display: none;
+        }
+
+        .layout {
+          flex-direction: column;
+        }
+
+        .map-shell {
+          flex: 0 0 55vh;
+          height: 55vh;
+        }
+
+        #map {
+          height: 100%;
+        }
+
+        /* hide original sidebars in their desktop positions */
+        .sidebar-left,
+        .sidebar-right {
+          display: none;
+        }
+
+        /* mobile stacked panels container */
+        .mobile-panels {
+          display: block;
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          background: radial-gradient(circle at top, #020617 0, #020617 55%);
+          border-top: 1px solid rgba(148, 163, 184, 0.35);
+          padding: 10px 10px 80px;
+        }
+
+        .mobile-panel {
+          background: rgba(15, 23, 42, 0.95);
+          border-radius: 14px;
+          border: 1px solid rgba(148, 163, 184, 0.35);
+          padding: 14px 14px 16px;
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.7);
+          margin-bottom: 10px;
+        }
+
+        .map-top-overlay {
+          left: 10px;
+          transform: none;
+        }
+
+        .clear-btn,
+        .delete-btn {
+          font-size: 13px;
+        }
+
+        /* hide vertical scrollbar but keep scrollability */
+        .mobile-panels {
+          scrollbar-width: none; /* Firefox */
+        }
+        .mobile-panels::-webkit-scrollbar {
+          display: none; /* Chrome/Safari */
+        }
+      }
+
+      @media (max-width: 480px) {
+        .map-shell {
+          flex: 0 0 50vh;
+          height: 50vh;
+        }
+
+        .topbar {
+          height: 52px;
+        }
+
+        .online-pill {
           display: none;
         }
       }
@@ -696,7 +783,7 @@
       </div>
 
       <div class="layout">
-        <!-- Left sidebar -->
+        <!-- Left sidebar (desktop / tablet) -->
         <aside class="sidebar-left">
           <div class="panel">
             <div class="panel-header">
@@ -780,7 +867,6 @@
               />
             </div>
 
-            <!-- New: optional photo upload -->
             <div class="verify-field">
               <div class="verify-field-label">Add a photo (optional)</div>
               <input
@@ -813,15 +899,12 @@
           </div>
         </main>
 
-        <!-- Right sidebar -->
+        <!-- Right sidebar (desktop / tablet) -->
         <aside class="sidebar-right">
           <div class="panel">
             <div class="leaderboard-header">
               <div>
                 <div class="panel-title">Global Travelers</div>
-                <!-- <div class="leaderboard-tagline">
-                  Local session leaderboard (stored in your browser)
-                </div> -->
               </div>
               <div class="players-count" id="playersCount">
                 <strong>0</strong> players
@@ -830,7 +913,6 @@
             <div class="leaderboard" id="leaderboardList"></div>
           </div>
 
-          <!-- New Top Countries leaderboard -->
           <div class="panel">
             <div class="leaderboard-header">
               <div>
@@ -843,6 +925,97 @@
             <div class="leaderboard" id="countryLeaderboardList"></div>
           </div>
         </aside>
+
+        <!-- Mobile stacked panels (only visible on phones) -->
+        <div class="mobile-panels">
+          <!-- Score + how to play -->
+          <section class="mobile-panel">
+            <div class="panel-header">
+              <div class="panel-title">Your Score</div>
+              <span class="badge-live">Session</span>
+            </div>
+            <div class="score-card">
+              <div>
+                <div class="score-main" id="scoreNumber_mobile">0</div>
+                <div class="score-label">Places Verified</div>
+              </div>
+              <div class="streak-pill">
+                <span class="streak-dot"></span>
+                Live Session
+              </div>
+            </div>
+            <hr
+              style="
+                border: none;
+                border-top: 1px solid rgba(55, 65, 81, 0.8);
+                margin: 10px 0;
+              "
+            />
+            <div class="panel-header">
+              <div class="panel-title">How to Play</div>
+            </div>
+            <div class="instructions">
+              Compete with other travelers in real-time on a shared world map:
+              <ol>
+                <li>Enter your display name.</li>
+                <li>Click anywhere on the map to propose a visit.</li>
+                <li>Add a photo if you'd like to.</li>
+                <li>We’ll prevent duplicate pins near your past visits.</li>
+                <li>Watch your rank on the global leaderboard.</li>
+              </ol>
+            </div>
+            <div class="player-input">
+              <div class="player-input-label">Your Display Name</div>
+              <input
+                type="text"
+                id="playerName_mobile"
+                placeholder="Enter your name..."
+                value="Traveler"
+              />
+            </div>
+          </section>
+
+          <!-- Your visits -->
+          <section class="mobile-panel">
+            <div class="panel-header">
+              <div class="panel-title">Your Visits</div>
+            </div>
+            <div class="visits-section-title">Pins you've verified</div>
+            <div class="visits-subtitle">
+              Click the map to add more. You’ll see them here and on the map.
+            </div>
+            <div class="visits-list" id="visitsList_mobile"></div>
+            <button class="clear-btn" onclick="clearVisits()">
+              Clear all my visits
+            </button>
+          </section>
+
+          <!-- Global travelers -->
+          <section class="mobile-panel">
+            <div class="leaderboard-header">
+              <div>
+                <div class="panel-title">Global Travelers</div>
+              </div>
+              <div class="players-count" id="playersCount_mobile">
+                <strong>0</strong> players
+              </div>
+            </div>
+            <div class="leaderboard" id="leaderboardList_mobile"></div>
+          </section>
+
+          <!-- Top countries -->
+          <section class="mobile-panel">
+            <div class="leaderboard-header">
+              <div>
+                <div class="panel-title">Top Countries</div>
+                <div class="leaderboard-tagline">
+                  Most visited countries across all players
+                </div>
+              </div>
+            </div>
+            <div class="leaderboard" id="countryLeaderboardList_mobile"></div>
+          </section>
+        </div>
       </div>
     </div>
 
