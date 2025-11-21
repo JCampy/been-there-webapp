@@ -258,36 +258,54 @@ app.post("/api/visits", authenticateToken, async (req, res) => {
 });
 
 // GET /api/visits/public - list recent visits for public map
-// GET /api/visits/public - list recent visits for public map
 app.get("/api/visits/public", async (req, res) => {
   try {
-    const { data, error } = await supabaseAdmin
+    // 1) Get recent visits
+    const { data: visits, error: visitsError } = await supabaseAdmin
       .from("visits")
       .select(
-        `
-        id,
-        user_id,
-        lat,
-        lng,
-        place_name,
-        country,
-        country_code,
-        photo_url,
-        created_at,
-        profiles!visits_user_id_fkey (
-          display_name
-        )
-      `
+        "id, user_id, lat, lng, place_name, country, country_code, photo_url, created_at"
       )
       .order("created_at", { ascending: false })
       .limit(500);
 
-    if (error) throw error;
+    if (visitsError) {
+      console.error("Error fetching visits for public map:", visitsError);
+      return res.status(500).json({ error: "Failed to load public visits" });
+    }
 
-    // Normalize to { ..., display_name }
-    const withNames = (data || []).map((row) => ({
-      ...row,
-      display_name: row.profiles?.display_name || "Traveler",
+    if (!visits || visits.length === 0) {
+      return res.json([]); // no visits yet
+    }
+
+    // 2) Get profiles for those user_ids
+    const userIds = [...new Set(visits.map((v) => v.user_id).filter(Boolean))];
+
+    let nameById = new Map();
+
+    if (userIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabaseAdmin
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.error(
+          "Error fetching profiles for public visits:",
+          profilesError
+        );
+        // Continue; we will just fall back to "Traveler"
+      } else if (profiles) {
+        nameById = new Map(
+          profiles.map((p) => [p.id, p.display_name || "Traveler"])
+        );
+      }
+    }
+
+    // 3) Attach display_name to each visit
+    const withNames = visits.map((v) => ({
+      ...v,
+      display_name: nameById.get(v.user_id) || "Traveler",
     }));
 
     res.json(withNames);

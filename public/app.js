@@ -110,6 +110,16 @@ function countryCodeToFlagEmoji(countryCode) {
   return first + second;
 }
 
+// ====== CLEAR ALL MARKERS ======
+function clearAllMarkers() {
+  if (!map) return;
+  markers.forEach((marker) => {
+    map.removeLayer(marker);
+  });
+  markers = [];
+  visitMarkers.clear();
+}
+
 // ====== FORMAT DATE ======
 function formatVisitDate(isoString) {
   if (!isoString) return "";
