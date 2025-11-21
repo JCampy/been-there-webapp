@@ -23,15 +23,25 @@ const visitMarkers = new Map();
 
 // DOM elements
 const playerNameInput = document.getElementById("playerName");
+const playerNameMobileInput = document.getElementById("playerName_mobile");
 const scoreNumberEl = document.getElementById("scoreNumber");
+const scoreNumberMobileEl = document.getElementById("scoreNumber_mobile");
 const visitsListEl = document.getElementById("visitsList");
+const visitsListMobileEl = document.getElementById("visitsList_mobile");
 const leaderboardListEl = document.getElementById("leaderboardList");
+const leaderboardListMobileEl = document.getElementById(
+  "leaderboardList_mobile"
+);
 const playersCountEl = document.getElementById("playersCount");
+const playersCountMobileEl = document.getElementById("playersCount_mobile");
 const overlayEl = document.getElementById("overlay");
 const verifyPopupEl = document.getElementById("verifyPopup");
 const coordsDisplayEl = document.getElementById("coordsDisplay");
 const countryLeaderboardListEl = document.getElementById(
   "countryLeaderboardList"
+);
+const countryLeaderboardListMobileEl = document.getElementById(
+  "countryLeaderboardList_mobile"
 );
 const pinPhotoInput = document.getElementById("pinPhotoInput");
 
@@ -131,6 +141,7 @@ function formatVisitDate(isoString) {
 function updateNameUI(name) {
   currentPlayerName = name || "Traveler";
   if (playerNameInput) playerNameInput.value = currentPlayerName;
+  if (playerNameMobileInput) playerNameMobileInput.value = currentPlayerName;
 }
 
 // ====== INITIALIZATION ======
@@ -140,7 +151,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     : "Traveler";
 
   updateNameUI(currentPlayerName);
-  if (playerNameInput) playerNameInput.value = currentPlayerName;
 
   initMap();
 
@@ -152,16 +162,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       currentPlayerName = profileName;
       updateNameUI(profileName);
-      if (playerNameInput) {
-        playerNameInput.value = profileName;
-      }
       console.log("Loaded display name from profile:", profileName);
     }
   } catch (err) {
     console.warn("Could not load user profile:", err);
   }
 
-  // If you switched to public visits, call loadPublicVisits() here instead
   await refreshData().catch((err) =>
     console.warn("Initial data load failed (likely unauthenticated):", err)
   );
@@ -224,7 +230,6 @@ async function onMapClick(e) {
     3
   )}, ${e.latlng.lng.toFixed(3)}`;
 
-  // Reset file input when opening popup
   if (pinPhotoInput) {
     pinPhotoInput.value = "";
   }
@@ -295,7 +300,6 @@ async function uploadPinPhoto(file) {
   if (!file) return null;
 
   const supabase = window.supabaseClient;
-  console.log("uploadPinPhoto supabase client present:", !!supabase);
   if (!supabase) {
     console.warn("Supabase client not available on window");
     return null;
@@ -306,7 +310,6 @@ async function uploadPinPhoto(file) {
     .toString(36)
     .slice(2)}.${ext}`;
   const filePath = `pins/${fileName}`;
-  console.log("Uploading pin photo to:", filePath);
 
   const { data, error: uploadError } = await supabase.storage
     .from("pin-photos")
@@ -315,10 +318,7 @@ async function uploadPinPhoto(file) {
       upsert: false,
     });
 
-  console.log("Upload result:", { data, uploadError });
-
   if (uploadError) {
-    console.error("Pin photo upload error:", uploadError);
     alert(
       "Failed to upload photo: " + (uploadError.message || "Unknown error")
     );
@@ -328,8 +328,6 @@ async function uploadPinPhoto(file) {
   const {
     data: { publicUrl },
   } = supabase.storage.from("pin-photos").getPublicUrl(filePath);
-
-  console.log("Public URL:", publicUrl);
 
   return publicUrl;
 }
@@ -384,15 +382,12 @@ async function confirmPin() {
       throw new Error(data.error || "Failed to add visit");
     }
 
-    // Optionally keep this so the pin appears immediately
     addVisitMarker(data);
     closePopup();
 
-    // IMPORTANT: refresh both personal + public + leaderboards
     await refreshData();
   } catch (err) {
     alert(err.message);
-    console.error("Error adding visit:", err);
   }
 }
 
@@ -413,10 +408,10 @@ function closePopup() {
 async function loadVisits() {
   const authToken = getAuthToken();
   if (!authToken) {
-    console.warn("No auth token, clearing visits UI");
     visits = [];
     clearAllMarkers();
     scoreNumberEl.textContent = "0";
+    if (scoreNumberMobileEl) scoreNumberMobileEl.textContent = "0";
     renderVisitsList([]);
     return;
   }
@@ -435,12 +430,7 @@ async function loadVisits() {
     visits = await res.json();
 
     scoreNumberEl.textContent = visits.length;
-
-    // clearAllMarkers(); // This is now handled by loadPublicVisits()
-
-    // visits.forEach((visit) => { // This is now handled by loadPublicVisits()
-    //   addVisitMarker(visit);
-    // });
+    if (scoreNumberMobileEl) scoreNumberMobileEl.textContent = visits.length;
 
     renderVisitsList(visits);
   } catch (err) {
@@ -459,12 +449,8 @@ async function loadPublicVisits() {
 
     const publicVisits = await res.json();
 
-    // For the map, we show public visits instead of only personal ones
     clearAllMarkers();
     publicVisits.forEach((visit) => addVisitMarker(visit));
-
-    // For the sidebar + score, still use current user's visits
-    // so don't overwrite `visits` array here
   } catch (err) {
     console.error("Failed to load public visits:", err);
   }
@@ -475,10 +461,14 @@ function renderVisitsList(visitsList) {
   if (!visitsList || visitsList.length === 0) {
     visitsListEl.innerHTML =
       '<div style="text-align: center; color: #9ca3af; padding: 20px; font-size: 12px;">No visits yet. Click the map to add your first!</div>';
+    if (visitsListMobileEl)
+      visitsListMobileEl.innerHTML =
+        '<div style="text-align: center; color: #9ca3af; padding: 20px; font-size: 12px;">No visits yet. Click the map to add your first!</div>';
     return;
   }
 
   visitsListEl.innerHTML = "";
+  if (visitsListMobileEl) visitsListMobileEl.innerHTML = "";
 
   visitsList.forEach((visit) => {
     const item = document.createElement("div");
@@ -550,6 +540,8 @@ function renderVisitsList(visitsList) {
     });
 
     visitsListEl.appendChild(item);
+    if (visitsListMobileEl)
+      visitsListMobileEl.appendChild(item.cloneNode(true));
   });
 }
 
@@ -592,10 +584,9 @@ async function deleteVisit(id) {
       throw new Error("Failed to delete visit");
     }
 
-    await refreshData(); // Refresh all data after delete
+    await refreshData();
   } catch (err) {
     alert(err.message);
-    console.error("Error deleting visit:", err);
   }
 }
 
@@ -637,10 +628,9 @@ async function clearVisits() {
       });
     }
 
-    await refreshData(); // Refresh all data after clear
+    await refreshData();
   } catch (err) {
     alert("Failed to clear visits: " + err.message);
-    console.error("Error clearing visits:", err);
   }
 }
 
@@ -665,12 +655,18 @@ function renderLeaderboard(leaderboard) {
   if (leaderboard.length === 0) {
     leaderboardListEl.innerHTML =
       '<div style="text-align: center; color: #9ca3af; padding: 20px; font-size: 12px;">No players yet. Be the first!</div>';
+    if (leaderboardListMobileEl)
+      leaderboardListMobileEl.innerHTML =
+        '<div style="text-align: center; color: #9ca3af; padding: 20px; font-size: 12px;">No players yet. Be the first!</div>';
     playersCountEl.innerHTML = "<strong>0</strong> players";
+    if (playersCountMobileEl)
+      playersCountMobileEl.innerHTML = "<strong>0</strong> players";
     document.getElementById("onlineCount").textContent = "No players yet";
     return;
   }
 
   leaderboardListEl.innerHTML = "";
+  if (leaderboardListMobileEl) leaderboardListMobileEl.innerHTML = "";
 
   leaderboard.slice(0, 10).forEach((player, index) => {
     const item = document.createElement("div");
@@ -699,12 +695,18 @@ function renderLeaderboard(leaderboard) {
     `;
 
     leaderboardListEl.appendChild(item);
+    if (leaderboardListMobileEl)
+      leaderboardListMobileEl.appendChild(item.cloneNode(true));
   });
 
   const totalPlayers = leaderboard.length;
   playersCountEl.innerHTML = `<strong>${totalPlayers}</strong> ${
     totalPlayers === 1 ? "player" : "players"
   }`;
+  if (playersCountMobileEl)
+    playersCountMobileEl.innerHTML = `<strong>${totalPlayers}</strong> ${
+      totalPlayers === 1 ? "player" : "players"
+    }`;
   document.getElementById("onlineCount").textContent =
     totalPlayers > 1 ? `${totalPlayers} players online` : "You & others";
 }
@@ -734,10 +736,15 @@ function renderCountryLeaderboard(entries) {
   if (entries.length === 0) {
     countryLeaderboardListEl.innerHTML =
       '<div style="text-align: center; color: #9ca3af; padding: 20px; font-size: 12px;">No countries visited yet!</div>';
+    if (countryLeaderboardListMobileEl)
+      countryLeaderboardListMobileEl.innerHTML =
+        '<div style="text-align: center; color: #9ca3af; padding: 20px; font-size: 12px;">No countries visited yet!</div>';
     return;
   }
 
   countryLeaderboardListEl.innerHTML = "";
+  if (countryLeaderboardListMobileEl)
+    countryLeaderboardListMobileEl.innerHTML = "";
 
   entries.slice(0, 20).forEach((entry, index) => {
     const item = document.createElement("div");
@@ -769,6 +776,8 @@ function renderCountryLeaderboard(entries) {
     `;
 
     countryLeaderboardListEl.appendChild(item);
+    if (countryLeaderboardListMobileEl)
+      countryLeaderboardListMobileEl.appendChild(item.cloneNode(true));
   });
 }
 
@@ -795,11 +804,7 @@ function addVisitMarker(visit) {
     }),
   }).addTo(map);
 
-  // Prefer visit.owner_name/display_name, fall back to generic
-  const ownerName =
-    visit.display_name ||
-    visit.owner_name || // in case you choose that field name later
-    "Traveler";
+  const ownerName = visit.display_name || visit.owner_name || "Traveler";
 
   let popupHtml = `<b>${escapeHtml(
     visit.place_name || visit.country || "Unknown location"
@@ -837,6 +842,14 @@ if (playerNameInput) {
     saveUserDisplayName(newName);
   });
 }
+if (playerNameMobileInput) {
+  playerNameMobileInput.addEventListener("change", (e) => {
+    const newName = e.target.value.trim() || "Traveler";
+    currentPlayerName = newName;
+    updateNameUI(newName);
+    saveUserDisplayName(newName);
+  });
+}
 
 // ====== UTILITY FUNCTIONS ======
 function escapeHtml(text) {
@@ -867,14 +880,11 @@ window.addEventListener("unhandledrejection", (event) => {
 
 // ====== AUTH STATE HANDLERS (called from auth.js) ======
 async function handleLogin() {
-  console.log("Handling login in app.js");
-
-  // Reset local state & UI
   visits = [];
   clearAllMarkers();
   scoreNumberEl.textContent = "0";
+  if (scoreNumberMobileEl) scoreNumberMobileEl.textContent = "0";
 
-  // Refresh profile/display name from backend
   try {
     const profile = await fetchUserProfile();
     if (profile) {
@@ -887,22 +897,17 @@ async function handleLogin() {
     console.warn("Could not refresh profile on login:", err);
   }
 
-  // Reload visits + leaderboards for the *new* user
   await refreshData();
 }
 
 function handleLogout() {
-  console.log("Handling logout in app.js");
-
-  // Clear visits state & markers
   visits = [];
   clearAllMarkers();
   scoreNumberEl.textContent = "0";
+  if (scoreNumberMobileEl) scoreNumberMobileEl.textContent = "0";
 
-  // Clear list UI
   renderVisitsList([]);
 }
 
-// Expose to auth.js
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
