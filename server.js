@@ -239,7 +239,7 @@ app.post("/api/visits", authenticateToken, async (req, res) => {
           photo_url: photo_url || null,
         },
       ])
-      .select()
+      .select("*")
       .single();
 
     if (error) {

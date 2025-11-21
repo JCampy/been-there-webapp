@@ -13,6 +13,28 @@ const supabase = window.supabase
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
+// Expose Supabase client and user state on window
+window.supabaseClient = supabase;
+window.supabaseUser = null;
+
+// Helper: current user's id (for UI logic like pin colors)
+window.getSupabaseUserId = function () {
+  return window.supabaseUser ? window.supabaseUser.id : null;
+};
+
+// Track auth state
+supabase.auth.onAuthStateChange((event, session) => {
+  window.supabaseUser = session?.user || null;
+
+  if (event === "SIGNED_IN") {
+    console.log("Auth state: SIGNED_IN", window.supabaseUser?.id);
+    if (window.handleLogin) window.handleLogin();
+  } else if (event === "SIGNED_OUT") {
+    console.log("Auth state: SIGNED_OUT");
+    if (window.handleLogout) window.handleLogout();
+  }
+});
+
 // Where we store the JWT token
 const ACCESS_TOKEN_KEY = "supabaseAccessToken";
 const USER_NAME_KEY = "supabaseUserName";
