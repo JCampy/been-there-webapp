@@ -1,6 +1,12 @@
 // ====== CONFIGURATION ======
 const API_BASE = window.location.origin;
 
+// Define pin icon URLs
+const PUBLIC_PIN_ICON =
+  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png";
+const PERSONAL_PIN_ICON =
+  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png"; // Red for personal pins
+
 // ====== STATE ======
 let map;
 let tempMarker = null;
@@ -108,16 +114,6 @@ function countryCodeToFlagEmoji(countryCode) {
   const second = String.fromCodePoint(code.charCodeAt(1) + OFFSET);
 
   return first + second;
-}
-
-// ====== CLEAR ALL MARKERS ======
-function clearAllMarkers() {
-  if (!map) return;
-  markers.forEach((marker) => {
-    map.removeLayer(marker);
-  });
-  markers = [];
-  visitMarkers.clear();
 }
 
 // ====== FORMAT DATE ======
@@ -388,12 +384,12 @@ async function confirmPin() {
       throw new Error(data.error || "Failed to add visit");
     }
 
+    // Optionally keep this so the pin appears immediately
     addVisitMarker(data);
     closePopup();
 
-    await loadVisits(); // or loadPublicVisits()
-    await loadLeaderboard();
-    await loadCountryLeaderboard();
+    // IMPORTANT: refresh both personal + public + leaderboards
+    await refreshData();
   } catch (err) {
     alert(err.message);
     console.error("Error adding visit:", err);
@@ -440,11 +436,11 @@ async function loadVisits() {
 
     scoreNumberEl.textContent = visits.length;
 
-    clearAllMarkers();
+    // clearAllMarkers(); // This is now handled by loadPublicVisits()
 
-    visits.forEach((visit) => {
-      addVisitMarker(visit);
-    });
+    // visits.forEach((visit) => { // This is now handled by loadPublicVisits()
+    //   addVisitMarker(visit);
+    // });
 
     renderVisitsList(visits);
   } catch (err) {
@@ -596,9 +592,7 @@ async function deleteVisit(id) {
       throw new Error("Failed to delete visit");
     }
 
-    await loadVisits();
-    await loadLeaderboard();
-    await loadCountryLeaderboard();
+    await refreshData(); // Refresh all data after delete
   } catch (err) {
     alert(err.message);
     console.error("Error deleting visit:", err);
@@ -643,9 +637,7 @@ async function clearVisits() {
       });
     }
 
-    await loadVisits();
-    await loadLeaderboard();
-    await loadCountryLeaderboard();
+    await refreshData(); // Refresh all data after clear
   } catch (err) {
     alert("Failed to clear visits: " + err.message);
     console.error("Error clearing visits:", err);
@@ -782,8 +774,14 @@ function renderCountryLeaderboard(entries) {
 
 // ====== MARKER MANAGEMENT ======
 function addVisitMarker(visit) {
+  const currentUserId = window.getSupabaseUserId
+    ? window.getSupabaseUserId()
+    : null;
+
   const iconUrl =
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png";
+    currentUserId && visit.user_id === currentUserId
+      ? PERSONAL_PIN_ICON
+      : PUBLIC_PIN_ICON;
 
   const marker = L.marker([visit.lat, visit.lng], {
     icon: L.icon({
@@ -818,6 +816,16 @@ function addVisitMarker(visit) {
   if (visit.id) {
     visitMarkers.set(visit.id, marker);
   }
+}
+
+// ====== CLEAR ALL MARKERS ======
+function clearAllMarkers() {
+  if (!map) return;
+  markers.forEach((marker) => {
+    map.removeLayer(marker);
+  });
+  markers = [];
+  visitMarkers.clear();
 }
 
 // ====== PLAYER NAME UPDATE ======
