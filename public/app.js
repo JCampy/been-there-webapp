@@ -166,9 +166,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   setInterval(loadCountryLeaderboard, 30000);
 });
 
-// ====== REFRESH DATA ======
 async function refreshData() {
-  await loadVisits(); // or loadPublicVisits() if you have that wired up
+  await loadVisits(); // personal visits (for sidebar + score)
+  await loadPublicVisits(); // global pins for map
   await loadLeaderboard();
   await loadCountryLeaderboard();
 }
@@ -439,6 +439,28 @@ async function loadVisits() {
     renderVisitsList(visits);
   } catch (err) {
     console.error("Failed to load visits:", err);
+  }
+}
+
+// ====== LOAD PUBLIC VISITS (all users) ======
+async function loadPublicVisits() {
+  try {
+    const res = await fetch(`${API_BASE}/api/visits/public`);
+
+    if (!res.ok) {
+      throw new Error("Failed to load public visits");
+    }
+
+    const publicVisits = await res.json();
+
+    // For the map, we show public visits instead of only personal ones
+    clearAllMarkers();
+    publicVisits.forEach((visit) => addVisitMarker(visit));
+
+    // For the sidebar + score, still use current user's visits
+    // so don't overwrite `visits` array here
+  } catch (err) {
+    console.error("Failed to load public visits:", err);
   }
 }
 
